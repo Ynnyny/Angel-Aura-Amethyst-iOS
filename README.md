@@ -113,3 +113,4 @@ Amethyst is amazing, and surprisingly stable, and it wouldn't be this way withou
 - [DyldDeNeuralyzer](https://github.com/xpn/DyldDeNeuralyzer): bypasses Library Validation for loading external runtime
 - Thanks to [MCHeads](https://mc-heads.net) for providing Minecraft avatars.
 # Amethyst-iOS-Patch
+# Angel-Aura-Amethyst-iOS-
