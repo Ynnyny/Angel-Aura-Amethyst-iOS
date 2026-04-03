@@ -18,6 +18,7 @@ env:
   VERBOSE: "1"
   HOMEBREW_NO_AUTO_UPDATE: "1"
   HOMEBREW_NO_INSTALL_CLEANUP: "1"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   build-ios:
@@ -32,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout repository with submodules
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: recursive
 
@@ -45,13 +46,13 @@ jobs:
           test -f Natives/CMakeLists.txt
           test -f Natives/external/AFNetworking/AFNetworking/AFHTTPSessionManager.m
           test -f Natives/external/DBNumberedSlider/Classes/DBNumberedSlider.m
-          test -f Natives/external/MobileGlues/src/main/cpp/CMakeLists.txt
+          test -f Natives/external/MobileGlues/MobileGlues-cpp/CMakeLists.txt
           test -f Natives/external/fishhook/fishhook.c
           test -f Natives/resources/Frameworks/AltKit.framework/AltKit
           test -f Natives/resources/Frameworks/libgl4es_114.dylib
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "8"
@@ -135,52 +136,65 @@ jobs:
         if: always()
         run: |
           set +e
-          ls -lah artifacts
-          find artifacts -maxdepth 2 -type f | sort
+          if [ -d artifacts ]; then
+            ls -lah artifacts
+            find artifacts -maxdepth 2 -type f | sort
+          else
+            echo "artifacts directory does not exist yet"
+          fi
           echo
-          ls -lah Natives/build
-          find Natives/build -maxdepth 2 -type f | sort | sed -n '1,200p'
+          if [ -d Natives/build ]; then
+            ls -lah Natives/build
+            find Natives/build -maxdepth 2 -type f | sort | sed -n '1,200p'
+          else
+            echo "Natives/build directory does not exist yet"
+          fi
           echo
-          ls -lah JavaApp/build
-          find JavaApp/build -maxdepth 3 -type f | sort | sed -n '1,200p'
+          if [ -d JavaApp/build ]; then
+            ls -lah JavaApp/build
+            find JavaApp/build -maxdepth 3 -type f | sort | sed -n '1,200p'
+          else
+            echo "JavaApp/build directory does not exist yet"
+          fi
+          true
 
       - name: Upload regular IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: org.angelauramc.amethyst-ios.ipa
           if-no-files-found: error
           path: artifacts/org.angelauramc.amethyst-*-ios.ipa
 
       - name: Upload TrollStore TIPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: org.angelauramc.amethyst-ios-trollstore.tipa
           if-no-files-found: error
           path: artifacts/org.angelauramc.amethyst-*-ios-trollstore.tipa
 
       - name: Upload slimmed IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: org.angelauramc.amethyst.slimmed-ios.ipa
           if-no-files-found: error
           path: artifacts/org.angelauramc.amethyst.slimmed-*-ios.ipa
 
       - name: Upload slimmed TrollStore TIPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: org.angelauramc.amethyst.slimmed-ios-trollstore.tipa
           if-no-files-found: error
           path: artifacts/org.angelauramc.amethyst.slimmed-*-ios-trollstore.tipa
 
       - name: Upload dSYM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: AngelAuraAmethyst.dSYM
           if-no-files-found: error
           path: artifacts/AngelAuraAmethyst.dSYM
 
       - name: Upload bundled Java runtimes
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: java_runtimes.zip
           if-no-files-found: error
