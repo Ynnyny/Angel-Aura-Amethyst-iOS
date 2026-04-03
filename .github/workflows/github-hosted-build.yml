@@ -47,6 +47,7 @@ jobs:
           test -f Natives/external/AFNetworking/AFNetworking/AFHTTPSessionManager.m
           test -f Natives/external/DBNumberedSlider/Classes/DBNumberedSlider.m
           test -f Natives/external/MobileGlues/MobileGlues-cpp/CMakeLists.txt
+          test -f Natives/external/UnzipKit/UnzipKit.h
           test -f Natives/external/fishhook/fishhook.c
           test -f Natives/resources/Frameworks/AltKit.framework/AltKit
           test -f Natives/resources/Frameworks/libgl4es_114.dylib
