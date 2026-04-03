@@ -13,8 +13,8 @@ JCFLAGS := -cp "$(subst $() $(),:,$(wildcard $(SOURCEDIR)/*/):$(wildcard libs/*/
 
 all: $(TARGETS)
 	
-# Sometimes the CI produces empty class file resulting in broken jar, so we check and abort here
-check_empty_classes:
+# Sometimes the CI produces empty class file resulting in broken jar, so we check after all classes finish.
+check_empty_classes: $(CLASSES)
 	@set -e
 	@echo "Checking for empty class files"
 	$(eval EMPTY_CLASSES := $(shell find $(OUTPUTDIR) -name '*.class' -size 0))
@@ -33,12 +33,12 @@ $(CLASSES): $(OUTPUTDIR)/%.class: $(SOURCEDIR)/%.java
 	@$(BOOTJDK)/javac $(JCFLAGS) -d $(OUTPUTDIR)/classes $<
 	@cp $(@:$(OUTPUTDIR)/$(TARGET)/%.class=$(OUTPUTDIR)/classes/%*.class) $(dir $@)/
 
-$(OUTPUTDIR)/launcher.jar: $(CLASSES) check_empty_classes
+$(OUTPUTDIR)/launcher.jar: check_empty_classes
 	@set -e
 	@echo "Creating $@"
 	@$(BOOTJDK)/jar -cf $@ -C $(basename $@) .
 
-$(OUTPUTDIR)/lwjgl.jar: $(CLASSES) check_empty_classes
+$(OUTPUTDIR)/lwjgl.jar: check_empty_classes
 	@set -e
 	@echo "Creating $@"
 	@mkdir -p $(OUTPUTDIR)/lwjgl_lib
@@ -46,7 +46,7 @@ $(OUTPUTDIR)/lwjgl.jar: $(CLASSES) check_empty_classes
 	@cp -R $(OUTPUTDIR)/lwjgl/* $(OUTPUTDIR)/lwjgl_lib/
 	@$(BOOTJDK)/jar -cf $@ -C $(OUTPUTDIR)/lwjgl_lib .
 
-$(OUTPUTDIR)/patchjna_agent.jar: $(CLASSES)
+$(OUTPUTDIR)/patchjna_agent.jar: check_empty_classes
 	@set -e
 	@mv $(basename $@)/com/sun/jna/Platform.class $(basename $@)/com/sun/jna/Platform.class.patch
 	@echo "Creating $@"
@@ -56,4 +56,4 @@ clean:
 	rm -rf $(OUTPUTDIR)
 
 .SUFFIXES: .java
-.PHONY: all clean
+.PHONY: all clean check_empty_classes
