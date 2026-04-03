@@ -19,8 +19,7 @@ extern NSNotificationName UIPresentationControllerPresentationTransitionWillBegi
 - (UIView *)buttonGlassView;
 @end
 
-// private functions
-extern BOOL _UISolariumEnabled(void) __attribute__((weak_import));
+BOOL UIHookHasLiquidGlass(void);
 
 @interface UIBarButtonItem(private)
 - (UIView *)view;

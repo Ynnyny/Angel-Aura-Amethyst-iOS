@@ -52,7 +52,7 @@
 
 - (BOOL)becomeFirstResponder {
     // iOS 26 uses popover aswell
-    BOOL hasLiquidGlass = _UISolariumEnabled && _UISolariumEnabled();
+    BOOL hasLiquidGlass = UIHookHasLiquidGlass();
     if (!hasLiquidGlass && !NSProcessInfo.processInfo.isMacCatalystApp) {
         return [super becomeFirstResponder];
     }
