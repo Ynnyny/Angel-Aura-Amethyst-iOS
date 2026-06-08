@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <mach/mach.h>
+
 #include "utils.h"
 
 #import "ios_uikit_bridge.h"
