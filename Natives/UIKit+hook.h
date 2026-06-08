@@ -20,7 +20,15 @@ extern NSNotificationName UIPresentationControllerPresentationTransitionWillBegi
 @end
 
 // private functions
-extern BOOL _UISolariumEnabled(void) __attribute__((weak_import));
+#import <dlfcn.h>
+static inline BOOL Amethyst_UISolariumEnabled(void) {
+    static BOOL (*func)(void);
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        func = dlsym(RTLD_DEFAULT, "_UISolariumEnabled");
+    });
+    return func ? func() : NO;
+}
 
 @interface UIBarButtonItem(private)
 - (UIView *)view;
