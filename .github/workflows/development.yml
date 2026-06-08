@@ -81,12 +81,12 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          brew install make cmake openjdk@8
+          brew install make cmake temurin@8
 
       - name: Build for ${{ matrix.platform_name }}
         run: |
           export PATH=/opt/homebrew/bin:$PATH
-          export BOOTJDK=/opt/homebrew/opt/openjdk@8/bin
+          export BOOTJDK=/opt/homebrew/opt/temurin@8/libexec/openjdk.jdk/Contents/Home/bin
           export SLIMMED=1
           if [ "${{ matrix.platform_name }}" == "ios" ]; then
             # Build ipa and tipa for iOS
