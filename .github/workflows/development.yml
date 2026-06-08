@@ -81,7 +81,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          brew install make cmake temurin@8
+          brew install make cmake ldid wget temurin@8
 
       - name: Build for ${{ matrix.platform_name }}
         run: |
