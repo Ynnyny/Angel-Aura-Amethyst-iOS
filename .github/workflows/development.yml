@@ -86,7 +86,7 @@ jobs:
       - name: Build for ${{ matrix.platform_name }}
         run: |
           export PATH=/opt/homebrew/bin:$PATH
-          export BOOTJDK=/opt/homebrew/opt/temurin@8/libexec/openjdk.jdk/Contents/Home/bin
+          export BOOTJDK=/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home/bin
           export SLIMMED=1
           if [ "${{ matrix.platform_name }}" == "ios" ]; then
             # Build ipa and tipa for iOS
