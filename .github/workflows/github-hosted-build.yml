@@ -79,6 +79,7 @@ jobs:
           download_runtime() {
             local version="$1"
             local url="$2"
+            local ext="${url##*.}"
 
             if [ -f "depends/java-${version}-openjdk/release" ]; then
               return 0
@@ -88,17 +89,21 @@ jobs:
               return 0
             fi
 
-            local zip_path="depends/jre${version}-ios-aarch64.zip"
-            curl -fL --retry 5 --retry-all-errors --retry-delay 5 "$url" -o "$zip_path"
-            unzip -o "$zip_path" -d depends
-            rm -f "$zip_path"
+            if [ "$ext" = "xz" ]; then
+              curl -fL --retry 5 --retry-all-errors --retry-delay 5 "$url" -o "depends/jre${version}-ios-arm64-release.tar.xz"
+            else
+              local zip_path="depends/jre${version}-ios-aarch64.zip"
+              curl -fL --retry 5 --retry-all-errors --retry-delay 5 "$url" -o "$zip_path"
+              unzip -o "$zip_path" -d depends
+              rm -f "$zip_path"
+            fi
             compgen -G "depends/jre${version}-*.tar.xz" > /dev/null
           }
 
           download_runtime 8 "https://crystall1ne.dev/cdn/amethyst-ios/jre8-ios-aarch64.zip"
           download_runtime 17 "https://crystall1ne.dev/cdn/amethyst-ios/jre17-ios-aarch64.zip"
           download_runtime 21 "https://crystall1ne.dev/cdn/amethyst-ios/jre21-ios-aarch64.zip"
-          download_runtime 25 "https://crystall1ne.dev/cdn/amethyst-ios/jre25-ios-aarch64.zip"
+          download_runtime 25 "https://github.com/vibecodest/Amethyst-iOS/releases/download/jre25-ios-v10/jre25-ios-arm64-20260509-release.tar.xz"
           ls -lah depends
 
       - name: Show build environment

@@ -161,8 +161,12 @@ METHOD_JAVA_UNPACK = \
 	cd $(SOURCEDIR)/depends; \
 	if [ ! -f "java-$(1)-openjdk/release" ] && [ ! -f "$(ls jre$(1)-*.tar.xz)" ]; then \
 		if [ "$(RUNNER)" != "1" ]; then \
-			wget '$(2)' -q --show-progress; \
-			unzip jre*-ios-aarch64.zip && rm jre*-ios-aarch64.zip; \
+			if echo '$(2)' | grep -q '\.tar\.xz$$'; then \
+				wget '$(2)' -q --show-progress; \
+			else \
+				wget '$(2)' -q --show-progress; \
+				unzip jre*-ios-aarch64.zip && rm jre*-ios-aarch64.zip; \
+			fi; \
 		fi; \
 		mkdir -p java-$(1)-openjdk; \
 		tar xvf jre$(1)-*.tar.xz -C java-$(1)-openjdk; \
@@ -291,7 +295,7 @@ jre: native
 	$(call METHOD_JAVA_UNPACK,8,'https://crystall1ne.dev/cdn/amethyst-ios/jre8-ios-aarch64.zip'); \
 	$(call METHOD_JAVA_UNPACK,17,'https://crystall1ne.dev/cdn/amethyst-ios/jre17-ios-aarch64.zip'); \
 	$(call METHOD_JAVA_UNPACK,21,'https://crystall1ne.dev/cdn/amethyst-ios/jre21-ios-aarch64.zip'); \
-	$(call METHOD_JAVA_UNPACK,25,'https://crystall1ne.dev/cdn/amethyst-ios/jre25-ios-aarch64.zip'); \
+	$(call METHOD_JAVA_UNPACK,25,'https://github.com/vibecodest/Amethyst-iOS/releases/download/jre25-ios-v10/jre25-ios-arm64-20260509-release.tar.xz'); \
 	if [ -f "$(ls jre*.tar.xz)" ]; then rm $(SOURCEDIR)/depends/jre*.tar.xz; fi; \
 	cd $(SOURCEDIR); \
 	rm -rf $(SOURCEDIR)/depends/java-*-openjdk/{ASSEMBLY_EXCEPTION,bin,include,jre,legal,LICENSE,man,THIRD_PARTY_README,lib/{ct.sym,jspawnhelper,libjsig.dylib,src.zip,tools.jar}}; \
