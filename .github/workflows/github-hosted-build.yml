@@ -1,0 +1,202 @@
+name: GitHub Hosted Build
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-hosted-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLATFORM: "2"
+  SLIMMED: "1"
+  VERBOSE: "1"
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+  HOMEBREW_NO_INSTALL_CLEANUP: "1"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  build-ios:
+    name: Build iOS IPA and TIPA
+    # JavaApp uses com.apple.eawt.Application, so keep this on an Intel runner with an x64 JDK 8.
+    runs-on: macos-15-intel
+    timeout-minutes: 180
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Validate checked out sources
+        run: |
+          set -euxo pipefail
+          git submodule status --recursive
+          test -f Makefile
+          test -f JavaApp/Makefile
+          test -f Natives/CMakeLists.txt
+          test -f Natives/external/AFNetworking/AFNetworking/AFHTTPSessionManager.m
+          test -f Natives/external/DBNumberedSlider/Classes/DBNumberedSlider.m
+          test -f Natives/external/MobileGlues/MobileGlues-cpp/CMakeLists.txt
+          test -f Natives/external/UnzipKit/UnzipKit.h
+          test -f Natives/external/fishhook/fishhook.c
+          test -f Natives/resources/Frameworks/AltKit.framework/AltKit
+          test -f Natives/resources/Frameworks/libgl4es_114.dylib
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "8"
+          architecture: x64
+
+      - name: Install build dependencies
+        run: |
+          set -euxo pipefail
+          brew install make cmake wget ldid
+
+      - name: Export build environment
+        run: |
+          set -euxo pipefail
+          echo "BREW_PREFIX=$(brew --prefix)" >> "$GITHUB_ENV"
+          echo "BOOTJDK=$JAVA_HOME/bin" >> "$GITHUB_ENV"
+
+      - name: Preload Java runtimes
+        run: |
+          set -euxo pipefail
+          mkdir -p depends
+
+          download_runtime() {
+            local version="$1"
+            local url="$2"
+
+            if [ -f "depends/java-${version}-openjdk/release" ]; then
+              return 0
+            fi
+
+            if compgen -G "depends/jre${version}-*.tar.xz" > /dev/null; then
+              return 0
+            fi
+
+            local zip_path="depends/jre${version}-ios-aarch64.zip"
+            curl -fL --retry 5 --retry-all-errors --retry-delay 5 "$url" -o "$zip_path"
+            unzip -o "$zip_path" -d depends
+            rm -f "$zip_path"
+            compgen -G "depends/jre${version}-*.tar.xz" > /dev/null
+          }
+
+          download_runtime 8 "https://crystall1ne.dev/cdn/amethyst-ios/jre8-ios-aarch64.zip"
+          download_runtime 17 "https://crystall1ne.dev/cdn/amethyst-ios/jre17-ios-aarch64.zip"
+          download_runtime 21 "https://crystall1ne.dev/cdn/amethyst-ios/jre21-ios-aarch64.zip"
+          ls -lah depends
+
+      - name: Show build environment
+        run: |
+          set -euxo pipefail
+          export PATH="$BREW_PREFIX/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "BOOTJDK=$BOOTJDK"
+          echo "BREW_PREFIX=$BREW_PREFIX"
+          uname -a
+          sw_vers
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+          gmake --version
+          cmake --version
+          "$BOOTJDK/javac" -version
+          "$BOOTJDK/javap" com.apple.eawt.Application >/dev/null
+          wget --version | head -n 1
+          ldid -v || true
+
+      - name: Build regular IPA and dSYM
+        env:
+          RUNNER: "1"
+        run: |
+          set -euxo pipefail
+          export PATH="$BREW_PREFIX/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+          gmake -j"$(sysctl -n hw.ncpu)" dsym package PLATFORM="$PLATFORM"
+
+      - name: Build TrollStore TIPA
+        env:
+          RUNNER: "1"
+        run: |
+          set -euxo pipefail
+          export PATH="$BREW_PREFIX/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+          gmake -j"$(sysctl -n hw.ncpu)" package PLATFORM="$PLATFORM" TROLLSTORE_JIT_ENT=1
+
+      - name: Show produced files
+        if: always()
+        run: |
+          set +e
+          if [ -d artifacts ]; then
+            ls -lah artifacts
+            find artifacts -maxdepth 2 -type f | sort
+          else
+            echo "artifacts directory does not exist yet"
+          fi
+          echo
+          if [ -d Natives/build ]; then
+            ls -lah Natives/build
+            find Natives/build -maxdepth 2 -type f | sort | sed -n '1,200p'
+          else
+            echo "Natives/build directory does not exist yet"
+          fi
+          echo
+          if [ -d JavaApp/build ]; then
+            ls -lah JavaApp/build
+            find JavaApp/build -maxdepth 3 -type f | sort | sed -n '1,200p'
+          else
+            echo "JavaApp/build directory does not exist yet"
+          fi
+          true
+
+      - name: Upload regular IPA
+        uses: actions/upload-artifact@v6
+        with:
+          name: org.angelauramc.amethyst-ios.ipa
+          if-no-files-found: error
+          path: artifacts/org.angelauramc.amethyst-*-ios.ipa
+
+      - name: Upload TrollStore TIPA
+        uses: actions/upload-artifact@v6
+        with:
+          name: org.angelauramc.amethyst-ios-trollstore.tipa
+          if-no-files-found: error
+          path: artifacts/org.angelauramc.amethyst-*-ios-trollstore.tipa
+
+      - name: Upload slimmed IPA
+        uses: actions/upload-artifact@v6
+        with:
+          name: org.angelauramc.amethyst.slimmed-ios.ipa
+          if-no-files-found: error
+          path: artifacts/org.angelauramc.amethyst.slimmed-*-ios.ipa
+
+      - name: Upload slimmed TrollStore TIPA
+        uses: actions/upload-artifact@v6
+        with:
+          name: org.angelauramc.amethyst.slimmed-ios-trollstore.tipa
+          if-no-files-found: error
+          path: artifacts/org.angelauramc.amethyst.slimmed-*-ios-trollstore.tipa
+
+      - name: Upload dSYM
+        uses: actions/upload-artifact@v6
+        with:
+          name: AngelAuraAmethyst.dSYM
+          if-no-files-found: error
+          path: artifacts/AngelAuraAmethyst.dSYM
+
+      - name: Upload bundled Java runtimes
+        uses: actions/upload-artifact@v6
+        with:
+          name: java_runtimes.zip
+          if-no-files-found: error
+          path: artifacts/java_runtimes.zip
