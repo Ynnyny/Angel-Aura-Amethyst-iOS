@@ -98,6 +98,7 @@ jobs:
           download_runtime 8 "https://crystall1ne.dev/cdn/amethyst-ios/jre8-ios-aarch64.zip"
           download_runtime 17 "https://crystall1ne.dev/cdn/amethyst-ios/jre17-ios-aarch64.zip"
           download_runtime 21 "https://crystall1ne.dev/cdn/amethyst-ios/jre21-ios-aarch64.zip"
+          download_runtime 25 "https://crystall1ne.dev/cdn/amethyst-ios/jre25-ios-aarch64.zip"
           ls -lah depends
 
       - name: Show build environment
