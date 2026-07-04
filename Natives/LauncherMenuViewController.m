@@ -115,6 +115,13 @@
     
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
     
+    UILabel *versionLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, self.tableView.frame.size.width, 24)];
+    versionLabel.text = [NSString stringWithFormat:@"v%@", [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"]];
+    versionLabel.font = [UIFont systemFontOfSize:10];
+    versionLabel.textColor = UIColor.tertiaryLabelColor;
+    versionLabel.textAlignment = NSTextAlignmentCenter;
+    self.tableView.tableFooterView = versionLabel;
+    
     self.navigationController.toolbarHidden = NO;
     UIActivityIndicatorViewStyle indicatorStyle = UIActivityIndicatorViewStyleMedium;
     UIActivityIndicatorView *toolbarIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:indicatorStyle];

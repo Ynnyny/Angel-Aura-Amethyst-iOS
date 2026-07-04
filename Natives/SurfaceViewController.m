@@ -2,6 +2,7 @@
 #import <GameController/GameController.h>
 #import <objc/runtime.h>
 
+#import "AudioLevelMeterView.h"
 #import "authenticator/BaseAuthenticator.h"
 #import "customcontrols/ControlButton.h"
 #import "customcontrols/ControlDrawer.h"
@@ -58,6 +59,8 @@ static GameSurfaceView* pojavWindow;
 
 @property(nonatomic) UIImpactFeedbackGenerator *lightHaptic;
 @property(nonatomic) UIImpactFeedbackGenerator *mediumHaptic;
+
+@property(nonatomic) AudioLevelMeterView *audioLevelMeterView;
 
 @end
 
@@ -128,6 +131,12 @@ static GameSurfaceView* pojavWindow;
 
     [self.rootView addSubview:self.touchView];
     [self.rootView addSubview:self.ctrlView];
+
+    CGFloat meterW = 24;
+    self.audioLevelMeterView = [[AudioLevelMeterView alloc] initWithFrame:CGRectMake(self.view.frame.size.width - meterW - 4, self.view.safeAreaInsets.top, meterW, self.view.frame.size.height - self.view.safeAreaInsets.top - self.view.safeAreaInsets.bottom)];
+    self.audioLevelMeterView.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleHeight;
+    self.audioLevelMeterView.hidden = YES;
+    [self.rootView addSubview:self.audioLevelMeterView];
 
     [self performSelector:@selector(setupCategory_Navigation)];
 
@@ -268,6 +277,12 @@ static GameSurfaceView* pojavWindow;
         [self switchToExternalDisplay];
     }
 
+    // Stop audio level meter before JVM starts so Simple Voice Chat can use OpenAL capture
+    [AudioLevelMeterView setGameRunning:YES];
+    if (self.audioLevelMeterView) {
+        [self.audioLevelMeterView stopMonitoring];
+    }
+
     [self launchMinecraft];
 }
 
@@ -283,6 +298,38 @@ static GameSurfaceView* pojavWindow;
     if(getPrefBool(@"video.allow_microphone")) {
         category = AVAudioSessionCategoryPlayAndRecord;
         options |= AVAudioSessionCategoryOptionAllowAirPlay | AVAudioSessionCategoryOptionAllowBluetoothA2DP | AVAudioSessionCategoryOptionDefaultToSpeaker;
+        AVAudioSession *session = AVAudioSession.sharedInstance;
+        [session requestRecordPermission:^(BOOL granted) {
+            if (!granted) {
+                NSLog(@"Microphone permission denied");
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    setPrefBool(@"video.allow_microphone", NO);
+                });
+            }
+        }];
+
+        NSString *micSource = getPrefObject(@"video.mic_source");
+        if (micSource.length > 0) {
+            for (AVAudioSessionPortDescription *input in session.availableInputs) {
+                if ([input.portType isEqualToString:AVAudioSessionPortBuiltInMic]) {
+                    for (AVAudioSessionDataSourceDescription *source in input.dataSources) {
+                        NSString *name = source.dataSourceName.lowercaseString;
+                        NSString *loc = source.location.lowercaseString;
+                        NSString *orient = source.orientation.lowercaseString;
+                        BOOL match = [name containsString:micSource] ||
+                                     [orient containsString:micSource] ||
+                                     ([micSource isEqualToString:@"bottom"] && [loc containsString:@"lower"]) ||
+                                     ([micSource isEqualToString:@"back"] && [loc containsString:@"upper"]) ||
+                                     [loc containsString:micSource];
+                        if (match) {
+                            [input setPreferredDataSource:source error:nil];
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
     } else if(getPrefBool(@"video.silence_with_switch")) {
         category = AVAudioSessionCategorySoloAmbient;
     } else {
@@ -348,6 +395,16 @@ static GameSurfaceView* pojavWindow;
 
     // Update audio settings
     [self updateAudioSettings];
+
+    BOOL audioMeterEnabled = getPrefBool(@"general.audio_level_meter");
+    if (audioMeterEnabled && self.audioLevelMeterView.hidden) {
+        self.audioLevelMeterView.hidden = NO;
+        [self.audioLevelMeterView startMonitoring];
+    } else if (!audioMeterEnabled && !self.audioLevelMeterView.hidden) {
+        [self.audioLevelMeterView stopMonitoring];
+        self.audioLevelMeterView.hidden = YES;
+    }
+
     // Update resolution
     [self updateSavedResolution];
     // Update performance HUD visibility

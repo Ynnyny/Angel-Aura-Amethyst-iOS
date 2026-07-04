@@ -385,7 +385,7 @@
 
     self.currentMenu = [UIMenu menuWithTitle:message children:menuItems];
     UIContextMenuInteraction *interaction = [[UIContextMenuInteraction alloc] initWithDelegate:self];
-    cell.detailTextLabel.interactions = @[interaction];
+    cell.contentView.interactions = @[interaction];
     [interaction _presentMenuAtLocation:CGPointZero];
 }
 

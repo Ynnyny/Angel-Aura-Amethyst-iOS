@@ -166,6 +166,7 @@ add_executable(AngelAuraAmethyst
   PLProfiles.m
   SceneDelegate.m
   SceneExternalDelegate.m
+  AudioLevelMeterView.m
   SurfaceViewController.m
   SurfaceViewController+ExternalDisplay.m
   SurfaceViewController+LogView.m

@@ -284,3 +284,14 @@
 "controller_configurator.section.footer.menu_mappings" = "Các ràng buộc khi chuột không bị khóa, chẳng hạn như trên màn hình tiêu đề hoặc trong menu tạm dừng.";
 "controller_configurator.section.controller_style" = "Loại Bộ điều khiển";
 "controller_configurator.section.footer.controller_style" = "Hiển thị các tên nút điều khiển khác nhau trong bộ cấu hình này.";
+
+"preference.title.allow_microphone" = "Cho phép nhập liệu bằng microphone";
+"preference.detail.allow_microphone" = "Chỉ bật nếu bạn đang sử dụng mod voice chat. Tùy chọn tắt âm thanh bằng công tắc im lặng sẽ bị bỏ qua và chất lượng âm thanh từ các ứng dụng khác sẽ bị ảnh hưởng.";
+"preference.title.mic_source" = "Nguồn Micro";
+"preference.detail.mic_source" = "Chọn micro nào để sử dụng. Bottom là micro gọi/ghi âm ở cạnh dưới thiết bị.";
+"preference.title.audio_level_meter" = "Mức âm thanh";
+"preference.detail.audio_level_meter" = "Hiển thị thanh dọc ở cạnh phải thể hiện mức âm thanh đầu vào từ micro theo thời gian thực.";
+"Auto" = "Tự động";
+"Bottom" = "Dưới";
+"Front" = "Trước";
+"Back" = "Sau";

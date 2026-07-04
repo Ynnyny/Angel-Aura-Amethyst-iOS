@@ -68,8 +68,15 @@ int pojavInitOpenGL() {
     } else if ([renderer hasPrefix:@"libOSMesa"]) {
         setenv("GALLIUM_DRIVER","zink",1);
         set_osm_bridge_tbl();
+    } else if ([renderer isEqualToString:@ RENDERER_NAME_MOLTENVK]) {
+        // MoltenVK - Vulkan renderer, no GL bridge needed.
+        // The game uses Vulkan API directly via LWJGL.
+        // clientAPI will be set to GLFW_NO_API by the game.
+        setenv("POJAV_RENDERER", renderer.UTF8String, 1);
     }
-    JNI_LWJGL_changeRenderer(renderer.UTF8String);
+    if (![renderer isEqualToString:@ RENDERER_NAME_MOLTENVK]) {
+        JNI_LWJGL_changeRenderer(renderer.UTF8String);
+    }
     // Preload renderer library
     dlopen([NSString stringWithFormat:@"@rpath/%@", renderer].UTF8String, RTLD_GLOBAL);
 

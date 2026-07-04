@@ -244,14 +244,19 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     //margv[++margc] = "-Dorg.lwjgl.util.NoChecks=true";
     margv[++margc] = "-Dlog4j2.formatMsgNoLookups=true";
 
-    // Preset OpenGL libname
+    // Preset OpenGL/Vulkan libname
     const char *glLibName = getenv("POJAV_RENDERER");
     if (glLibName) {
         if (!strcmp(glLibName, "auto")) {
             // workaround only applies to 1.20.2+
             glLibName = RENDERER_NAME_MTL_ANGLE;
         }
-        margv[++margc] = [NSString stringWithFormat:@"-Dorg.lwjgl.opengl.libname=%s", glLibName].UTF8String;
+        if (!strcmp(glLibName, RENDERER_NAME_MOLTENVK)) {
+            // MoltenVK is a Vulkan implementation, not OpenGL
+            margv[++margc] = [NSString stringWithFormat:@"-Dorg.lwjgl.vulkan.libname=%s", glLibName].UTF8String;
+        } else {
+            margv[++margc] = [NSString stringWithFormat:@"-Dorg.lwjgl.opengl.libname=%s", glLibName].UTF8String;
+        }
     }
 
     NSString *librariesPath = [NSString stringWithFormat:@"%@/libs", NSBundle.mainBundle.bundlePath];
@@ -315,7 +320,9 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         margv[++margc] = "--add-exports=java.desktop/sun.awt.event=ALL-UNNAMED";
         margv[++margc] = "--add-exports=java.desktop/sun.awt.datatransfer=ALL-UNNAMED";
         margv[++margc] = "--add-exports=java.desktop/sun.font=ALL-UNNAMED";
-        margv[++margc] = "--add-exports=java.base/sun.security.action=ALL-UNNAMED";
+        if (minVersion < 25) {
+            margv[++margc] = "--add-exports=java.base/sun.security.action=ALL-UNNAMED";
+        }
         margv[++margc] = "--add-opens=java.base/java.util=ALL-UNNAMED";
         margv[++margc] = "--add-opens=java.desktop/java.awt=ALL-UNNAMED";
         margv[++margc] = "--add-opens=java.desktop/sun.font=ALL-UNNAMED";

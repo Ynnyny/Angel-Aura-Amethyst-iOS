@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
-
+#import <AVFoundation/AVFoundation.h>
+ 
 #import "DBNumberedSlider.h"
 #import "HostManagerBridge.h"
 #import "LauncherNavigationController.h"
@@ -114,6 +115,11 @@
               @"type": self.typeSwitch,
               @"enableCondition": whenNotInGame
             },
+            @{@"key": @"audio_level_meter",
+              @"hasDetail": @YES,
+              @"icon": @"waveform",
+              @"type": self.typeSwitch
+            },
             @{@"key": @"reset_warnings",
               @"icon": @"exclamationmark.triangle",
               @"type": self.typeButton,
@@ -221,7 +227,25 @@
             @{@"key": @"allow_microphone",
               @"hasDetail": @YES,
               @"icon": @"mic",
-              @"type": self.typeSwitch
+              @"type": self.typeSwitch,
+              @"action": ^(BOOL enabled){
+                  if (enabled) {
+                      [AVAudioSession.sharedInstance requestRecordPermission:^(BOOL granted) {
+                          if (!granted) {
+                              dispatch_async(dispatch_get_main_queue(), ^{
+                                  setPrefBool(@"video.allow_microphone", NO);
+                              });
+                          }
+                      }];
+                  }
+              }
+            },
+            @{@"key": @"mic_source",
+              @"hasDetail": @YES,
+              @"icon": @"antenna.radiowaves.left.and.right",
+              @"type": self.typePickField,
+              @"pickKeys": @[@"", @"bottom", @"front", @"back"],
+              @"pickList": @[localize(@"Auto", nil), localize(@"Bottom", nil), localize(@"Front", nil), localize(@"Back", nil)]
             },
         ], @[
             // MobileGlues settings

@@ -75,7 +75,7 @@ public final class Platform {
     private static Object stackWalker;
     private static Method stackWalkerGetCaller;
     private static boolean isMacFoundVoiceChatMod;
-    private static int isMacFindRetries = 10;
+    private static int isMacFindRetries = 200;
 
     static {
         osType = MAC;
@@ -108,30 +108,38 @@ public final class Platform {
         return osType;
     }
     public static final boolean isMac() {
-        if (isMacFindRetries <= 0) {
-            return true;
-        } else if (!isMacFoundVoiceChatMod) {
+        if (!isMacFoundVoiceChatMod && isMacFindRetries > 0) {
             isMacFindRetries--;
             try {
                 matchingClasses.add(Class.forName("de.maxhenkel.voicechat.config.ClientConfig"));
                 matchingClasses.add(Class.forName("de.maxhenkel.voicechat.VoicechatClient"));
+                matchingClasses.add(Class.forName("de.maxhenkel.voicechat.voice.client.MicThread"));
+                matchingClasses.add(Class.forName("de.maxhenkel.voicechat.voice.client.microphone.MicrophoneManager"));
+                matchingClasses.add(Class.forName("de.maxhenkel.voicechat.voice.client.microphone.JavaxMicrophone"));
                 isMacFoundVoiceChatMod = true;
             } catch (Throwable th) {}
             try {
                 matchingClasses.add(Class.forName("su.plo.voice.client.audio.device.VoiceDeviceManager"));
                 isMacFoundVoiceChatMod = true;
             } catch (Throwable th) {}
+            try {
+                matchingClasses.add(Class.forName("de.maxhenkel.voicechat.voice.client.MicrophoneImpl"));
+                isMacFoundVoiceChatMod = true;
+            } catch (Throwable th) {}
         }
  
         // All voice chat mods calls this thing and straight out disable OpenAL input
         // so we must trick them into NOT forcefully disabling it
+        // Always check caller regardless of retry state
         try {
             Class caller = (Class)stackWalkerGetCaller.invoke(stackWalker);
-            System.out.println("Platform.isMac called from " + caller.getName());
-            return !matchingClasses.contains(caller);
+            boolean matched = matchingClasses.contains(caller);
+            if (matched) {
+                System.out.println("Platform.isMac <- " + caller.getName() + " returning FALSE (trick voice chat)");
+            }
+            return !matched;
         } catch (Throwable e) {
-            // We're calling a public method, this should never happen
-            throw new RuntimeException(e);
+            return true;
         }
     }
     public static final boolean isAndroid() {
