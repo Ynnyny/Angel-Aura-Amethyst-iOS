@@ -27,4 +27,5 @@ Thanks to vibecodest for the source code!
 - [AltKit](https://github.com/rileytestut/AltKit)
 - [UnzipKit](https://github.com/abbeycode/UnzipKit): [BSD-2 License](https://github.com/abbeycode/UnzipKit/blob/master/LICENSE).
 - [DyldDeNeuralyzer](https://github.com/xpn/DyldDeNeuralyzer): bypasses Library Validation for loading external runtime
+- [LTW render](https://github.com/MojoLauncher/LTW.git): [LGPL-3.0 license](https://github.com/MojoLauncher/LTW/blob/master/LICENSE)
 - Thanks to [MCHeads](https://mc-heads.net) for providing Minecraft avatars.
