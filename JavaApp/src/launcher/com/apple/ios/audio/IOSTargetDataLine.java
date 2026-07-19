@@ -8,8 +8,9 @@ public class IOSTargetDataLine implements TargetDataLine {
 
     private AudioFormat format;
     private int bufferSize;
-    private boolean open, running;
+    private volatile boolean open, running;
     private long nativeHandle;
+    private final Object lock = new Object();
     private final List<LineListener> listeners = new CopyOnWriteArrayList<>();
 
     @Override
@@ -19,7 +20,9 @@ public class IOSTargetDataLine implements TargetDataLine {
 
     @Override
     public void open(AudioFormat format, int bufferSize) throws LineUnavailableException {
-        if (open) close();
+        synchronized (lock) {
+            if (open) close();
+        }
         if (format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED
                 || format.getSampleSizeInBits() != 16
                 || format.getChannels() != 1) {
@@ -27,16 +30,19 @@ public class IOSTargetDataLine implements TargetDataLine {
         }
         this.format = format;
         this.bufferSize = Math.max(bufferSize, 4096);
-        nativeHandle = NativeAudioCapture.init(
+        long handle = NativeAudioCapture.init(
             (int) format.getSampleRate(),
             format.getChannels(),
             format.getSampleSizeInBits(),
             format.isBigEndian()
         );
-        if (nativeHandle == 0) {
+        if (handle == 0) {
             throw new LineUnavailableException("Failed to initialize native audio capture");
         }
-        open = true;
+        synchronized (lock) {
+            nativeHandle = handle;
+            open = true;
+        }
         fireEvent(LineEvent.Type.OPEN);
     }
 
@@ -47,12 +53,19 @@ public class IOSTargetDataLine implements TargetDataLine {
 
     @Override
     public void close() {
-        if (!open) return;
-        if (running) stop();
-        open = false;
-        if (nativeHandle != 0) {
-            NativeAudioCapture.release(nativeHandle);
+        long handle;
+        synchronized (lock) {
+            if (!open) return;
+            if (running) {
+                running = false;
+                NativeAudioCapture.stop(nativeHandle);
+            }
+            open = false;
+            handle = nativeHandle;
             nativeHandle = 0;
+        }
+        if (handle != 0) {
+            NativeAudioCapture.release(handle);
         }
         fireEvent(LineEvent.Type.CLOSE);
     }
@@ -64,17 +77,25 @@ public class IOSTargetDataLine implements TargetDataLine {
 
     @Override
     public void start() {
-        if (!open || running) return;
-        running = true;
-        NativeAudioCapture.start(nativeHandle);
+        long handle;
+        synchronized (lock) {
+            if (!open || running) return;
+            running = true;
+            handle = nativeHandle;
+        }
+        NativeAudioCapture.start(handle);
         fireEvent(LineEvent.Type.START);
     }
 
     @Override
     public void stop() {
-        if (!running) return;
-        running = false;
-        NativeAudioCapture.stop(nativeHandle);
+        long handle;
+        synchronized (lock) {
+            if (!running) return;
+            running = false;
+            handle = nativeHandle;
+        }
+        NativeAudioCapture.stop(handle);
         fireEvent(LineEvent.Type.STOP);
     }
 
@@ -100,14 +121,24 @@ public class IOSTargetDataLine implements TargetDataLine {
 
     @Override
     public int available() {
-        if (!open) return 0;
-        return NativeAudioCapture.available(nativeHandle);
+        long handle;
+        synchronized (lock) {
+            if (!open) return 0;
+            handle = nativeHandle;
+        }
+        return NativeAudioCapture.available(handle);
     }
 
     @Override
     public int read(byte[] b, int off, int len) {
-        if (!open || !running) return -1;
-        return NativeAudioCapture.read(nativeHandle, b, off, len);
+        long handle;
+        synchronized (lock) {
+            if (!open || !running) return -1;
+            handle = nativeHandle;
+        }
+        if (handle == 0) return -1;
+        int n = NativeAudioCapture.read(handle, b, off, len);
+        return n < 0 ? -1 : n;
     }
 
     public int remaining() {

@@ -278,23 +278,28 @@ static GameSurfaceView* pojavWindow;
 
 - (void)updateAudioSettings {
     NSError *sessionError = nil;
+    AVAudioSession *session = AVAudioSession.sharedInstance;
+    // Deactivate before changing category to avoid audio glitches
+    [session setActive:NO error:nil];
+
     AVAudioSessionCategory category;
     AVAudioSessionCategoryOptions options = 0;
     if(getPrefBool(@"video.allow_microphone")) {
         category = AVAudioSessionCategoryPlayAndRecord;
         options |= AVAudioSessionCategoryOptionAllowAirPlay | AVAudioSessionCategoryOptionAllowBluetoothA2DP | AVAudioSessionCategoryOptionDefaultToSpeaker;
     } else {
-        category = AVAudioSessionCategoryPlayAndRecord;
-        options |= AVAudioSessionCategoryOptionDefaultToSpeaker;
+        category = AVAudioSessionCategoryPlayback;
     }
     if(!getPrefBool(@"video.silence_other_audio")) {
         options |= AVAudioSessionCategoryOptionMixWithOthers;
     }
-    AVAudioSession *session = AVAudioSession.sharedInstance;
     [session setCategory:category withOptions:options error:&sessionError];
-    [session setPreferredSampleRate:48000.0 error:&sessionError];
-    [session setPreferredIOBufferDuration:0.005 error:&sessionError];
-    [session setMode:AVAudioSessionModeVoiceChat error:&sessionError];
+
+    if(getPrefBool(@"video.allow_microphone")) {
+        [session setPreferredSampleRate:48000.0 error:&sessionError];
+        [session setPreferredIOBufferDuration:0.005 error:&sessionError];
+    }
+
     [session setActive:YES error:&sessionError];
 
     if(getPrefBool(@"video.allow_microphone")) {

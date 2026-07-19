@@ -8,7 +8,10 @@
 static PLPreferences* pref;
 
 void loadPreferences(BOOL reset) {
-    assert(getenv("POJAV_HOME"));
+    if (!getenv("POJAV_HOME")) {
+        NSLog(@"FATAL: POJAV_HOME environment variable is not set. Cannot load preferences.");
+        return;
+    }
     if (reset) {
         [pref reset];
     } else {
@@ -139,6 +142,7 @@ NSArray* getRendererKeys(BOOL containsDefault) {
         @ RENDERER_NAME_GL4ES,
         @ RENDERER_NAME_MTL_ANGLE,
         @ RENDERER_NAME_MOBILEGLUES,
+        @ RENDERER_NAME_LTW,
         @ RENDERER_NAME_VK_ZINK,
         @ RENDERER_NAME_VULKAN
     ].mutableCopy;
@@ -160,6 +164,7 @@ NSArray* getRendererNames(BOOL containsDefault) {
         localize(@"preference.title.renderer.debug.gl4es", nil),
         localize(@"preference.title.renderer.debug.angle", nil),
         localize(@"preference.title.renderer.debug.mg", nil),
+        localize(@"preference.title.renderer.debug.ltw", nil),
         localize(@"preference.title.renderer.debug.zink", nil),
         localize(@"preference.title.renderer.debug.vulkan", nil)
     };

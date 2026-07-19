@@ -189,7 +189,10 @@ void JIT26SendJITScript(NSString* script) {
 BOOL DeviceCanCreateRXMap(void) {
     // This is only guaranteed to be accurate when JIT is already enabled. Obviously this is only useful for vphone and similar internal environments where JIT is always enabled.
     uint32_t *map = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-    assert(map != MAP_FAILED);
+    if (map == MAP_FAILED) {
+        NSLog(@"DeviceCanCreateRXMap: mmap failed: %s", strerror(errno));
+        return NO;
+    }
     *map = 0xFFFFFFFF;
     int ret = mprotect(map, getpagesize(), PROT_READ | PROT_EXEC) | mprotect(map, getpagesize(), PROT_READ | PROT_EXEC);
     munmap(map, getpagesize());

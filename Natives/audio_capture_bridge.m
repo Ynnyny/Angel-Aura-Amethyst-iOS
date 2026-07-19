@@ -13,6 +13,7 @@ typedef struct {
     pthread_mutex_t mutex;
     pthread_cond_t cond;
     volatile BOOL running;
+    volatile BOOL destroyed;
 } AudioCaptureCtx;
 
 static AudioCaptureCtx *ctx_init() {
@@ -22,6 +23,7 @@ static AudioCaptureCtx *ctx_init() {
     ctx->write_pos = 0;
     ctx->read_pos = 0;
     ctx->running = NO;
+    ctx->destroyed = NO;
     pthread_mutex_init(&ctx->mutex, NULL);
     pthread_cond_init(&ctx->cond, NULL);
     return ctx;
@@ -36,7 +38,9 @@ static void ctx_destroy(AudioCaptureCtx *ctx) {
 }
 
 static size_t ctx_available(AudioCaptureCtx *ctx) {
-    return ctx->write_pos - ctx->read_pos;
+    size_t wp = ctx->write_pos;
+    size_t rp = ctx->read_pos;
+    return wp >= rp ? wp - rp : 0;
 }
 
 static void ctx_write(AudioCaptureCtx *ctx, const uint8_t *data, size_t len) {
@@ -63,7 +67,7 @@ static void ctx_write(AudioCaptureCtx *ctx, const uint8_t *data, size_t len) {
 static size_t ctx_read(AudioCaptureCtx *ctx, uint8_t *data, size_t len, BOOL block) {
     pthread_mutex_lock(&ctx->mutex);
     while (ctx_available(ctx) == 0) {
-        if (!block || !ctx->running) {
+        if (!block || !ctx->running || ctx->destroyed) {
             pthread_mutex_unlock(&ctx->mutex);
             return 0;
         }
@@ -95,7 +99,7 @@ typedef struct {
 #define HANDLE_FORMAT(h) ((__bridge AVAudioFormat*)(h)->outputFormat)
 
 static void tapCallback(AVAudioPCMBuffer *buffer, AudioCaptureCtx *ctx) {
-    if (!ctx->running) return;
+    if (!ctx->running || ctx->destroyed) return;
     if (buffer.frameLength == 0) return;
 
     float * const *floatData = buffer.floatChannelData;
@@ -157,6 +161,15 @@ static CaptureHandle *createCapture(int sampleRate) {
 
 static void destroyCapture(CaptureHandle *handle) {
     if (!handle) return;
+    if (handle->ctx) {
+        pthread_mutex_lock(&handle->ctx->mutex);
+        handle->ctx->running = NO;
+        handle->ctx->destroyed = YES;
+        pthread_cond_broadcast(&handle->ctx->cond);
+        pthread_mutex_unlock(&handle->ctx->mutex);
+        ctx_destroy(handle->ctx);
+        handle->ctx = NULL;
+    }
     if (handle->engine) {
         AVAudioEngine *e = (__bridge_transfer AVAudioEngine*)handle->engine;
         [e.inputNode removeTapOnBus:0];
@@ -167,11 +180,6 @@ static void destroyCapture(CaptureHandle *handle) {
         AVAudioFormat *f = (__bridge_transfer AVAudioFormat*)handle->outputFormat;
         (void)f;
         handle->outputFormat = NULL;
-    }
-    if (handle->ctx) {
-        handle->ctx->running = NO;
-        pthread_cond_broadcast(&handle->ctx->cond);
-        ctx_destroy(handle->ctx);
     }
     free(handle);
 }

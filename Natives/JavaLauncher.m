@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include "utils.h"
+#include "ZinkConfig.h"
 
 #import "ios_uikit_bridge.h"
 #import "JavaLauncher.h"
@@ -254,6 +255,16 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         NSString *renderer = [PLProfiles resolveKeyForCurrentProfile:@"renderer"];
         NSLog(@"[JavaLauncher] RENDERER is set to %@\n", renderer);
         setenv("AMETHYST_RENDERER", renderer.UTF8String, 1);
+
+        // Apply Zink-specific environment variables if Zink renderer is selected
+        if ([renderer hasPrefix:@"libOSMesa"]) {
+            [ZinkConfig applyZinkEnvironmentFromPreferences];
+            // Show active config summary as a console-readable env var + log
+            NSString *configSummary = [ZinkConfig activeConfigSummary];
+            NSLog(@"[ZinkConfig] ========== Zink Renderer Active ==========");
+            NSLog(@"[ZinkConfig] %@", configSummary);
+            setenv("ZINK_ACTIVE_CONFIG", configSummary.UTF8String, 1);
+        }
         // Setup gameDir
         gameDir = [NSString stringWithFormat:@"%s/instances/%@/%@",
             getenv("POJAV_HOME"), getPrefObject(@"general.game_directory"),
@@ -386,18 +397,24 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     margv[++margc] = "-XX:+UnlockExperimentalVMOptions";
     margv[++margc] = "-XX:+DisablePrimordialThreadGuardPages";
 
-    // On iOS 26, use mirror mapped JIT by default — but only if the libjvm
-    // supports it. Our iOS-built JDK 25 (jre25-ios-v1) does NOT include the
-    // mirror_mapping HotSpot patch yet, so passing this flag makes the JVM
-    // bail out with "Unrecognized VM option". Skip for Java 25 until we
-    // port the mirror_mapping changes (Phase 2).
+    // Use ParallelGC instead of G1GC. On mobile with limited heap (~922MB),
+    // G1GC's Full GC can pause the app for 1-2 minutes, causing the "freeze
+    // then resume" issue. ParallelGC is more efficient for small heaps and
+    // avoids stop-the-world compaction stalls on iOS.
+    margv[++margc] = "-XX:+UseParallelGC";
+    margv[++margc] = "-XX:ParallelGCThreads=2";
+
+    // On iOS 26+, use mirror mapped JIT for better code cache performance.
+    // JDK 25 (jre25-ios-v1) has a bug in MirrorMappedCodeCache that causes
+    // SIGBUS in ScavengableNMethods::register_nmethod during JIT compilation.
+    // jre25-ios-v2 is supposed to fix this, but keep the flag off for Java 25
+    // until v2 is confirmed stable across all devices.
     NSString *currentJavaHome = [NSString stringWithUTF8String:getenv("JAVA_HOME") ?: ""];
     BOOL isJava25Home = [currentJavaHome containsString:@"java-25"];
     if (@available(iOS 26.0, *)) {
-        // jre25-ios-v2 includes the mirror_mapping HotSpot patch, so we can
-        // enable the flag for Java 25 too. Older Java 25 builds (v1) lacked
-        // it; keeping the suffix check harmless since v2 supports the flag.
-        margv[++margc] = "-XX:+MirrorMappedCodeCache";
+        if (!isJava25Home) {
+            margv[++margc] = "-XX:+MirrorMappedCodeCache";
+        }
     }
 
     // Disable Forge 1.16.x early progress window

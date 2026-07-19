@@ -146,8 +146,8 @@ void init_redirectStdio() {
     NSFileHandle *file = [NSFileHandle fileHandleForWritingAtPath:currName];
 
     if (!file) {
-        NSLog(@"[Pre-init] Error: failed to open %@", currName);
-        assert(0 && "Failed to open latestlog.txt. Check oslog for more details.");
+        NSLog(@"[Pre-init] Error: failed to open %@. Logging to oslog only.", currName);
+        return;
     }
 
     setvbuf(stdout, 0, _IOLBF, 0); // make stdout line-buffered

@@ -328,7 +328,8 @@
                   localize(@"preference.title.mg_fsr1_setting-3", nil)
               ]
             },
-        ], @[
+        ],
+        @[
             // Control settings
             @{@"icon": @"gamecontroller"},
             @{@"key": @"default_gamepad_ctrl",

@@ -3,6 +3,7 @@
 #import "UIKit+hook.h"
 #import "config.h"
 #import "utils.h"
+#import "ZinkConfig.h"
 
 @interface PLPreferences()
 @end
@@ -76,6 +77,13 @@
             @"angle_depth_clear_fix_mode": @(0),
             @"custom_gl_version": @(0),
             @"fsr1_setting": @(0)
+        }.mutableCopy,
+        @"zink": @{
+            @"optimization_level": @(-1),
+            @"gl_override": @(0),
+            @"enable_gl_thread": @YES,
+            @"glsl_cache_size": @(32),
+            @"api_features": @(0xFFFFFFFF)
         }.mutableCopy,
         @"internal": @{
             @"isolated": @NO,

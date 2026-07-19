@@ -145,7 +145,10 @@ void hackFix18LWJGL(void *addr) {
     char tempPage[PAGE_SIZE];
     memcpy(tempPage, addr, PAGE_SIZE);
     void *result = mmap(addr, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_PRIVATE | MAP_ANON, -1, 0);
-    assert(result != MAP_FAILED);
+    if (result == MAP_FAILED) {
+        NSLog(@"hackFix18LWJGL: mmap failed: %s", strerror(errno));
+        return;
+    }
     memcpy(addr, tempPage, PAGE_SIZE);
     mprotect(addr, PAGE_SIZE, PROT_READ | PROT_EXEC);
 }
